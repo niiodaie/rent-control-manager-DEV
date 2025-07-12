@@ -1,142 +1,123 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import useGeolocation from './useGeolocation';
 
-const languages = [
-  { code: 'en', name: 'English', flag: '🇺🇸', countries: ['US', 'CA', 'GB', 'AU', 'NZ', 'IE'] },
-  { code: 'es', name: 'Español', flag: '🇪🇸', countries: ['ES', 'MX', 'AR', 'CO', 'PE', 'VE', 'CL', 'EC', 'GT', 'CU'] },
-  { code: 'fr', name: 'Français', flag: '🇫🇷', countries: ['FR', 'BE', 'CH', 'CA', 'LU', 'MC'] },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪', countries: ['DE', 'AT', 'CH', 'LI'] },
-  { code: 'it', name: 'Italiano', flag: '🇮🇹', countries: ['IT', 'CH', 'SM', 'VA'] },
-  { code: 'pt', name: 'Português', flag: '🇵🇹', countries: ['PT', 'BR', 'AO', 'MZ'] },
-  { code: 'zh', name: '中文', flag: '🇨🇳', countries: ['CN', 'TW', 'HK', 'SG'] },
-  { code: 'ja', name: '日本語', flag: '🇯🇵', countries: ['JP'] },
-  { code: 'ko', name: '한국어', flag: '🇰🇷', countries: ['KR'] },
-  { code: 'ar', name: 'العربية', flag: '🇸🇦', countries: ['SA', 'AE', 'EG', 'JO', 'LB', 'SY', 'IQ', 'KW', 'QA', 'BH', 'OM', 'YE'] },
-  { code: 'ru', name: 'Русский', flag: '🇷🇺', countries: ['RU', 'BY', 'KZ', 'KG', 'TJ'] },
-  { code: 'hi', name: 'हिन्दी', flag: '🇮🇳', countries: ['IN'] },
-  { code: 'nl', name: 'Nederlands', flag: '🇳🇱', countries: ['NL', 'BE', 'SR'] },
-  { code: 'sv', name: 'Svenska', flag: '🇸🇪', countries: ['SE', 'FI'] },
-  { code: 'no', name: 'Norsk', flag: '🇳🇴', countries: ['NO'] },
-  { code: 'da', name: 'Dansk', flag: '🇩🇰', countries: ['DK'] },
-  { code: 'fi', name: 'Suomi', flag: '🇫🇮', countries: ['FI'] },
-  { code: 'pl', name: 'Polski', flag: '🇵🇱', countries: ['PL'] },
-  { code: 'tr', name: 'Türkçe', flag: '🇹🇷', countries: ['TR'] },
-  { code: 'th', name: 'ไทย', flag: '🇹🇭', countries: ['TH'] }
-];
+const useLanguage = () => {
+  const { i18n } = useTranslation();
+  const location = useGeolocation();
+  const [autoDetected, setAutoDetected] = useState(false);
 
-export function useLanguage(userLocation = null) {
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
-  const [detectedLanguage, setDetectedLanguage] = useState(null);
-  const [isAutoDetected, setIsAutoDetected] = useState(false);
+  // Language mapping based on country codes
+  const countryToLanguage = {
+    'US': 'en', 'CA': 'en', 'GB': 'en', 'AU': 'en', 'NZ': 'en', 'IE': 'en',
+    'ES': 'es', 'MX': 'es', 'AR': 'es', 'CO': 'es', 'PE': 'es', 'VE': 'es',
+    'CL': 'es', 'EC': 'es', 'GT': 'es', 'CU': 'es', 'BO': 'es', 'DO': 'es',
+    'HN': 'es', 'PY': 'es', 'SV': 'es', 'NI': 'es', 'CR': 'es', 'PA': 'es',
+    'UY': 'es', 'GQ': 'es',
+    'FR': 'fr', 'BE': 'fr', 'CH': 'fr', 'LU': 'fr', 'MC': 'fr', 'SN': 'fr',
+    'CI': 'fr', 'ML': 'fr', 'BF': 'fr', 'NE': 'fr', 'TD': 'fr', 'MG': 'fr',
+    'CM': 'fr', 'CG': 'fr', 'GA': 'fr', 'DJ': 'fr', 'KM': 'fr', 'VU': 'fr',
+    'DE': 'de', 'AT': 'de', 'LI': 'de',
+    'IT': 'it', 'SM': 'it', 'VA': 'it',
+    'PT': 'pt', 'BR': 'pt', 'AO': 'pt', 'MZ': 'pt', 'GW': 'pt', 'CV': 'pt',
+    'ST': 'pt', 'TL': 'pt', 'MO': 'pt',
+    'CN': 'zh', 'TW': 'zh', 'HK': 'zh', 'SG': 'zh',
+    'JP': 'ja',
+    'KR': 'ko', 'KP': 'ko',
+    'SA': 'ar', 'AE': 'ar', 'EG': 'ar', 'IQ': 'ar', 'JO': 'ar', 'KW': 'ar',
+    'LB': 'ar', 'LY': 'ar', 'MA': 'ar', 'OM': 'ar', 'PS': 'ar', 'QA': 'ar',
+    'SY': 'ar', 'TN': 'ar', 'YE': 'ar', 'BH': 'ar', 'DZ': 'ar', 'SD': 'ar',
+    'SO': 'ar', 'MR': 'ar', 'DJ': 'ar', 'KM': 'ar'
+  };
 
   useEffect(() => {
-    detectLanguage();
-  }, [userLocation]);
-
-  const detectLanguage = () => {
-    try {
-      let detectedLang = 'en'; // Default fallback
-      let detectionMethod = 'default';
-
-      // 1. Try to detect from user location (country)
-      if (userLocation && userLocation.countryCode) {
-        const countryCode = userLocation.countryCode.toUpperCase();
-        const languageFromCountry = languages.find(lang => 
-          lang.countries.includes(countryCode)
-        );
-        
-        if (languageFromCountry) {
-          detectedLang = languageFromCountry.code;
-          detectionMethod = 'location';
-        }
-      }
-
-      // 2. Fallback to browser language if location detection failed
-      if (detectionMethod === 'default') {
-        const browserLang = navigator.language || navigator.languages[0];
-        const langCode = browserLang.split('-')[0].toLowerCase();
-        
-        if (languages.find(lang => lang.code === langCode)) {
-          detectedLang = langCode;
-          detectionMethod = 'browser';
-        }
-      }
-
-      // 3. Check for saved preference
-      const savedLang = localStorage.getItem('preferred-language');
-      if (savedLang && languages.find(lang => lang.code === savedLang)) {
-        detectedLang = savedLang;
-        detectionMethod = 'saved';
-      }
-
-      setDetectedLanguage({
-        code: detectedLang,
-        method: detectionMethod,
-        timestamp: new Date().toISOString()
-      });
-
-      // Only auto-set if not manually changed before
-      if (!localStorage.getItem('language-manually-changed')) {
-        setSelectedLanguage(detectedLang);
-        setIsAutoDetected(detectionMethod !== 'saved');
-      }
-
-    } catch (error) {
-      console.error('Language detection failed:', error);
-      setDetectedLanguage({
-        code: 'en',
-        method: 'error',
-        error: error.message
-      });
-    }
-  };
-
-  const changeLanguage = (langCode) => {
-    if (languages.find(lang => lang.code === langCode)) {
-      setSelectedLanguage(langCode);
-      localStorage.setItem('preferred-language', langCode);
-      localStorage.setItem('language-manually-changed', 'true');
-      setIsAutoDetected(false);
+    const detectAndSetLanguage = () => {
+      // Check if user has manually selected a language
+      const savedLanguage = localStorage.getItem('selectedLanguage');
+      const manuallySet = localStorage.getItem('languageManuallySet') === 'true';
       
-      // Here you would typically trigger i18n language change
-      console.log('Language changed to:', langCode);
-      
-      // Dispatch custom event for other components to listen
-      window.dispatchEvent(new CustomEvent('languageChanged', { 
-        detail: { language: langCode } 
-      }));
-    }
+      if (savedLanguage && manuallySet) {
+        // User has manually selected a language, use that
+        i18n.changeLanguage(savedLanguage);
+        setAutoDetected(false);
+        return;
+      }
+
+      // Auto-detect based on location
+      if (location.countryCode && !location.loading) {
+        const detectedLanguage = countryToLanguage[location.countryCode] || 'en';
+        
+        // Only change if it's different from current language
+        if (i18n.language !== detectedLanguage) {
+          i18n.changeLanguage(detectedLanguage);
+          localStorage.setItem('selectedLanguage', detectedLanguage);
+          localStorage.setItem('languageManuallySet', 'false');
+          setAutoDetected(true);
+        }
+      } else if (!savedLanguage) {
+        // Fallback to browser language
+        const browserLanguage = navigator.language.split('-')[0];
+        const supportedLanguages = ['en', 'es', 'fr', 'de', 'it', 'pt', 'zh', 'ja', 'ko', 'ar'];
+        const fallbackLanguage = supportedLanguages.includes(browserLanguage) ? browserLanguage : 'en';
+        
+        i18n.changeLanguage(fallbackLanguage);
+        localStorage.setItem('selectedLanguage', fallbackLanguage);
+        localStorage.setItem('languageManuallySet', 'false');
+        setAutoDetected(true);
+      }
+    };
+
+    detectAndSetLanguage();
+  }, [location.countryCode, location.loading, i18n]);
+
+  const changeLanguage = (languageCode) => {
+    i18n.changeLanguage(languageCode);
+    localStorage.setItem('selectedLanguage', languageCode);
+    localStorage.setItem('languageManuallySet', 'true');
+    setAutoDetected(false);
   };
 
-  const resetToAutoDetect = () => {
-    localStorage.removeItem('language-manually-changed');
-    localStorage.removeItem('preferred-language');
-    detectLanguage();
+  const getLanguageFlag = (languageCode) => {
+    const flags = {
+      'en': '🇺🇸',
+      'es': '🇪🇸',
+      'fr': '🇫🇷',
+      'de': '🇩🇪',
+      'it': '🇮🇹',
+      'pt': '🇵🇹',
+      'zh': '🇨🇳',
+      'ja': '🇯🇵',
+      'ko': '🇰🇷',
+      'ar': '🇸🇦'
+    };
+    return flags[languageCode] || '🌐';
   };
 
-  const getCurrentLanguage = () => {
-    return languages.find(lang => lang.code === selectedLanguage) || languages[0];
-  };
-
-  const getAvailableLanguages = () => {
-    return languages;
-  };
-
-  const getLanguageByCountry = (countryCode) => {
-    return languages.find(lang => 
-      lang.countries.includes(countryCode.toUpperCase())
-    );
+  const getLanguageName = (languageCode) => {
+    const names = {
+      'en': 'English',
+      'es': 'Español',
+      'fr': 'Français',
+      'de': 'Deutsch',
+      'it': 'Italiano',
+      'pt': 'Português',
+      'zh': '中文',
+      'ja': '日本語',
+      'ko': '한국어',
+      'ar': 'العربية'
+    };
+    return names[languageCode] || languageCode.toUpperCase();
   };
 
   return {
-    selectedLanguage,
-    detectedLanguage,
-    isAutoDetected,
-    currentLanguage: getCurrentLanguage(),
-    availableLanguages: getAvailableLanguages(),
+    currentLanguage: i18n.language,
+    autoDetected,
     changeLanguage,
-    resetToAutoDetect,
-    getLanguageByCountry,
-    detectLanguage
+    getLanguageFlag,
+    getLanguageName,
+    location
   };
-}
+};
+
+export default useLanguage;
 

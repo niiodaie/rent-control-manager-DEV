@@ -1,21 +1,25 @@
 import React from 'react';
-import { Hero } from '../components/Hero';
-import { Features } from '../components/Features';
-import { Pricing } from '../components/Pricing';
+import Hero from '../components/Hero';
+import Features from '../components/Features';
+import Pricing from '../components/Pricing';
+import Footer from '../components/Footer';
 
-export function HomePage() {
+const HomePage = () => {
   return (
-    <div>
-      <section id="home">
+    <div className="min-h-screen">
+      <div id="home">
         <Hero />
-      </section>
-      <section id="features">
+      </div>
+      <div id="features">
         <Features />
-      </section>
-      <section id="pricing">
+      </div>
+      <div id="pricing">
         <Pricing />
-      </section>
+      </div>
+      <Footer />
     </div>
   );
-}
+};
+
+export default HomePage;
 
