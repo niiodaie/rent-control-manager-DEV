@@ -1,14 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import GlobalStatus from './components/GlobalStatus';
-import HomePage from './pages/HomePage';
-import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
-import FAQPage from './pages/FAQPage';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
+import { Header } from './components/Header';
+import { Footer } from './components/Footer';
+import { GlobalStatus } from './components/GlobalStatus';
+import { HomePage } from './pages/HomePage';
+import { AboutPage } from './pages/AboutPage';
+import { ContactPage } from './pages/ContactPage';
+import { FAQPage } from './pages/FAQPage';
+import { LoginPage } from './pages/LoginPage';
+import { SignupPage } from './pages/SignupPage';
 import './App.css';
 
 function App() {

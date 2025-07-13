@@ -1,121 +1,122 @@
 import { useState, useEffect } from 'react';
 
-const useGeolocation = () => {
-  const [location, setLocation] = useState({
-    city: null,
-    country: null,
-    countryCode: null,
-    loading: true,
-    error: null
-  });
+export function useGeolocation() {
+  const [location, setLocation] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const getLocationFromIP = async () => {
-      try {
-        // Try multiple IP geolocation services for reliability
-        const services = [
-          'https://ipapi.co/json/',
-          'https://ip-api.com/json/',
-          'https://ipinfo.io/json'
-        ];
-
-        for (const service of services) {
-          try {
-            const response = await fetch(service);
-            if (response.ok) {
-              const data = await response.json();
-              
-              // Normalize data from different services
-              let normalizedData = {};
-              
-              if (service.includes('ipapi.co')) {
-                normalizedData = {
-                  city: data.city,
-                  country: data.country_name,
-                  countryCode: data.country_code
-                };
-              } else if (service.includes('ip-api.com')) {
-                normalizedData = {
-                  city: data.city,
-                  country: data.country,
-                  countryCode: data.countryCode
-                };
-              } else if (service.includes('ipinfo.io')) {
-                normalizedData = {
-                  city: data.city,
-                  country: data.country,
-                  countryCode: data.country
-                };
-              }
-
-              if (normalizedData.city && normalizedData.country) {
-                setLocation({
-                  ...normalizedData,
-                  loading: false,
-                  error: null
-                });
-                
-                // Store in localStorage for future use
-                localStorage.setItem('userLocation', JSON.stringify(normalizedData));
-                return;
-              }
-            }
-          } catch (serviceError) {
-            console.warn(`Failed to get location from ${service}:`, serviceError);
-            continue;
-          }
-        }
-        
-        // If all services fail, try to get from localStorage
-        const storedLocation = localStorage.getItem('userLocation');
-        if (storedLocation) {
-          const parsedLocation = JSON.parse(storedLocation);
-          setLocation({
-            ...parsedLocation,
-            loading: false,
-            error: null
-          });
-        } else {
-          // Fallback to default location
-          setLocation({
-            city: 'Appleton',
-            country: 'United States',
-            countryCode: 'US',
-            loading: false,
-            error: 'Unable to detect location'
-          });
-        }
-      } catch (error) {
-        console.error('Geolocation error:', error);
-        setLocation(prev => ({
-          ...prev,
-          loading: false,
-          error: error.message
-        }));
-      }
-    };
-
-    // Check if we have cached location first
-    const cachedLocation = localStorage.getItem('userLocation');
-    if (cachedLocation) {
-      try {
-        const parsedLocation = JSON.parse(cachedLocation);
-        setLocation({
-          ...parsedLocation,
-          loading: false,
-          error: null
-        });
-      } catch (e) {
-        // If cached data is invalid, fetch new data
-        getLocationFromIP();
-      }
-    } else {
-      getLocationFromIP();
-    }
+    detectLocation();
   }, []);
 
-  return location;
-};
+  const detectLocation = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-export default useGeolocation;
+      // Try multiple IP geolocation services for reliability
+      const services = [
+        'https://ipapi.co/json/',
+        'https://ip-api.com/json/',
+        'https://ipinfo.io/json'
+      ];
+
+      let locationData = null;
+
+      for (const service of services) {
+        try {
+          const response = await fetch(service);
+          const data = await response.json();
+          
+          // Normalize data from different services
+          if (service.includes('ipapi.co')) {
+            locationData = {
+              country: data.country_name,
+              countryCode: data.country_code,
+              city: data.city,
+              region: data.region,
+              timezone: data.timezone,
+              currency: data.currency,
+              latitude: data.latitude,
+              longitude: data.longitude,
+              ip: data.ip
+            };
+          } else if (service.includes('ip-api.com')) {
+            locationData = {
+              country: data.country,
+              countryCode: data.countryCode,
+              city: data.city,
+              region: data.regionName,
+              timezone: data.timezone,
+              currency: data.currency,
+              latitude: data.lat,
+              longitude: data.lon,
+              ip: data.query
+            };
+          } else if (service.includes('ipinfo.io')) {
+            const [lat, lon] = (data.loc || '0,0').split(',');
+            locationData = {
+              country: data.country,
+              countryCode: data.country,
+              city: data.city,
+              region: data.region,
+              timezone: data.timezone,
+              latitude: parseFloat(lat),
+              longitude: parseFloat(lon),
+              ip: data.ip
+            };
+          }
+
+          if (locationData && locationData.country) {
+            break; // Successfully got location data
+          }
+        } catch (serviceError) {
+          console.log(`Failed to get location from ${service}:`, serviceError);
+          continue; // Try next service
+        }
+      }
+
+      if (locationData) {
+        setLocation(locationData);
+      } else {
+        throw new Error('All geolocation services failed');
+      }
+    } catch (err) {
+      console.error('Geolocation detection failed:', err);
+      setError(err.message);
+      
+      // Fallback to browser language detection
+      try {
+        const browserLang = navigator.language || navigator.languages[0];
+        const langCode = browserLang.split('-')[0];
+        const regionCode = browserLang.split('-')[1];
+        
+        setLocation({
+          country: 'Unknown',
+          countryCode: regionCode || 'US',
+          city: 'Unknown',
+          region: 'Unknown',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          language: langCode,
+          ip: 'Unknown'
+        });
+      } catch (fallbackError) {
+        console.error('Fallback detection failed:', fallbackError);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshLocation = () => {
+    detectLocation();
+  };
+
+  return {
+    location,
+    loading,
+    error,
+    refreshLocation
+  };
+}
 

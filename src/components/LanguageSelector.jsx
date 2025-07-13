@@ -1,28 +1,32 @@
-import React, { useState } from 'react';
-import { ChevronDown, Globe } from 'lucide-react';
-import useLanguage from '../hooks/useLanguage';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { useGeolocation } from '../hooks/useGeolocation';
+import { useLanguage } from '../hooks/useLanguage';
+import { Globe, ChevronDown } from 'lucide-react';
 
-const LanguageSelector = () => {
-  const { currentLanguage, autoDetected, changeLanguage, getLanguageFlag, getLanguageName, location } = useLanguage();
-  const [isOpen, setIsOpen] = useState(false);
+const languages = [
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+  { code: 'pt', name: 'Português', flag: '🇵🇹' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
+  { code: 'ja', name: '日本語', flag: '🇯🇵' },
+  { code: 'ko', name: '한국어', flag: '🇰🇷' },
+  { code: 'ar', name: 'العربية', flag: '🇸🇦' }
+];
 
-  const languages = [
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' },
-    { code: 'fr', name: 'Français', flag: '🇫🇷' },
-    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-    { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-    { code: 'pt', name: 'Português', flag: '🇵🇹' },
-    { code: 'zh', name: '中文', flag: '🇨🇳' },
-    { code: 'ja', name: '日本語', flag: '🇯🇵' },
-    { code: 'ko', name: '한국어', flag: '🇰🇷' },
-    { code: 'ar', name: 'العربية', flag: '🇸🇦' }
-  ];
+export function LanguageSelector() {
+  const { i18n } = useTranslation();
+  const { location } = useGeolocation();
+  const { detectedLanguage } = useLanguage();
+  const [isOpen, setIsOpen] = React.useState(false);
 
-  const currentLang = languages.find(lang => lang.code === currentLanguage) || languages[0];
+  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
 
   const handleLanguageChange = (languageCode) => {
-    changeLanguage(languageCode);
+    i18n.changeLanguage(languageCode);
     setIsOpen(false);
   };
 
@@ -30,78 +34,48 @@ const LanguageSelector = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+        className="flex items-center space-x-2 px-3 py-2 text-sm bg-muted/50 hover:bg-muted rounded-md transition-colors"
       >
-        <span className="text-lg">{currentLang.flag}</span>
-        <span className="hidden sm:inline">{currentLang.code.toUpperCase()}</span>
-        <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <span className="text-lg">{currentLanguage.flag}</span>
+        <span className="hidden sm:inline">{currentLanguage.code.toUpperCase()}</span>
+        <ChevronDown className="h-4 w-4" />
       </button>
 
       {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-10" 
-            onClick={() => setIsOpen(false)}
-          />
-          
-          {/* Dropdown */}
-          <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
-            {/* Header */}
-            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
-                <Globe size={16} />
-                <span>Language Selection</span>
+        <div className="absolute right-0 mt-2 w-64 bg-background border rounded-md shadow-lg z-50">
+          <div className="p-3 border-b">
+            <div className="text-xs text-muted-foreground mb-1">
+              Language auto-detected based on your location
+            </div>
+            {location && (
+              <div className="text-xs text-primary">
+                📍 {location.city}, {location.country}
               </div>
-              {autoDetected && location.city && (
-                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                  Auto-detected from {location.city}, {location.country}
-                </div>
-              )}
-            </div>
-
-            {/* Language Options */}
-            <div className="py-2 max-h-64 overflow-y-auto">
-              {languages.map((language) => (
-                <button
-                  key={language.code}
-                  onClick={() => handleLanguageChange(language.code)}
-                  className={`w-full flex items-center space-x-3 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                    currentLanguage === language.code 
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' 
-                      : 'text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  <span className="text-lg">{language.flag}</span>
-                  <div className="flex-1 text-left">
-                    <div className="font-medium">{language.name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {language.code.toUpperCase()}
-                    </div>
-                  </div>
-                  {currentLanguage === language.code && (
-                    <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full"></div>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Footer */}
-            <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-              {location.loading ? (
-                'Detecting location...'
-              ) : location.city ? (
-                `${location.city}, ${location.country}`
-              ) : (
-                'Location detection failed'
-              )}
-            </div>
+            )}
+            {detectedLanguage && (
+              <div className="text-xs text-muted-foreground">
+                Detected: {languages.find(l => l.code === detectedLanguage)?.name || detectedLanguage}
+              </div>
+            )}
           </div>
-        </>
+          <div className="max-h-64 overflow-y-auto">
+            {languages.map((language) => (
+              <button
+                key={language.code}
+                onClick={() => handleLanguageChange(language.code)}
+                className={`w-full flex items-center space-x-3 px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                  i18n.language === language.code ? 'bg-muted text-primary' : ''
+                }`}
+              >
+                <span className="text-lg">{language.flag}</span>
+                <span className="flex-1 text-left">{language.name}</span>
+                <span className="text-xs text-muted-foreground">{language.code.toUpperCase()}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
-};
-
-export default LanguageSelector;
+}
 

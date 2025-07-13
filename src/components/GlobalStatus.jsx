@@ -1,64 +1,54 @@
 import React from 'react';
+import { Badge } from './ui/badge';
 import { Globe, MapPin, Languages, Wifi, WifiOff } from 'lucide-react';
-import useGeolocation from '../hooks/useGeolocation';
-import useLanguage from '../hooks/useLanguage';
+import { useGeolocation } from '../hooks/useGeolocation';
+import { useLanguage } from '../hooks/useLanguage';
 
-const GlobalStatus = () => {
-  const location = useGeolocation();
-  const { currentLanguage, autoDetected, getLanguageFlag, getLanguageName } = useLanguage();
+export function GlobalStatus() {
+  const { location, loading: locationLoading, error: locationError } = useGeolocation();
+  const { currentLanguage, isAutoDetected, detectedLanguage } = useLanguage(location);
 
-  return (
-    <div className="fixed bottom-4 right-4 z-40">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 max-w-sm">
-        <div className="flex items-center space-x-2 mb-2">
-          <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <span className="text-sm font-medium text-gray-900 dark:text-white">
-            Global Status
-          </span>
-        </div>
-        
-        <div className="space-y-2 text-xs">
-          {/* Location Status */}
-          <div className="flex items-center space-x-2">
-            <MapPin className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span className="text-gray-600 dark:text-gray-300">
-              {location.loading ? (
-                'Detecting location...'
-              ) : location.city ? (
-                `${location.city}, ${location.country}`
-              ) : (
-                'Location unavailable'
-              )}
-            </span>
-          </div>
-
-          {/* Language Status */}
-          <div className="flex items-center space-x-2">
-            <Languages className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-            <span className="text-gray-600 dark:text-gray-300">
-              {getLanguageFlag(currentLanguage)} {getLanguageName(currentLanguage)}
-              {autoDetected && (
-                <span className="text-blue-600 dark:text-blue-400 ml-1">(auto)</span>
-              )}
-            </span>
-          </div>
-
-          {/* Connection Status */}
-          <div className="flex items-center space-x-2">
-            {navigator.onLine ? (
-              <Wifi className="w-3 h-3 text-green-600 dark:text-green-400" />
-            ) : (
-              <WifiOff className="w-3 h-3 text-red-600 dark:text-red-400" />
-            )}
-            <span className="text-gray-600 dark:text-gray-300">
-              {navigator.onLine ? 'Connected' : 'Offline'}
-            </span>
-          </div>
-        </div>
+  if (locationLoading) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50">
+        <Badge variant="secondary" className="flex items-center space-x-2 p-3">
+          <Globe className="h-4 w-4 animate-spin" />
+          <span>Detecting your location...</span>
+        </Badge>
       </div>
-    </div>
-  );
-};
+    );
+  }
 
-export default GlobalStatus;
+  if (locationError) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50">
+        <Badge variant="destructive" className="flex items-center space-x-2 p-3">
+          <WifiOff className="h-4 w-4" />
+          <span>Location detection failed</span>
+        </Badge>
+      </div>
+    );
+  }
+
+  if (location && isAutoDetected) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50">
+        <Badge variant="secondary" className="flex items-center space-x-2 p-3 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+          <div className="flex items-center space-x-1">
+            <MapPin className="h-4 w-4" />
+            <span>{location.city}, {location.country}</span>
+          </div>
+          <div className="w-px h-4 bg-green-300"></div>
+          <div className="flex items-center space-x-1">
+            <Languages className="h-4 w-4" />
+            <span>{currentLanguage?.flag} {currentLanguage?.name}</span>
+          </div>
+          <Wifi className="h-4 w-4 text-green-600" />
+        </Badge>
+      </div>
+    );
+  }
+
+  return null;
+}
 
